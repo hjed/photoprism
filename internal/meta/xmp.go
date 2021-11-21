@@ -47,6 +47,12 @@ func (data *Data) XMPMedia(fileName string, fileType fs.FileFormat) (err error) 
 
 	var seg *jpegstructure.Segment
 	_, seg, err = sl.FindXmp()
+
+	if seg == nil {
+		log.Debug("No XMP data found for %s", txt.Quote(filepath.Base(fileName)))
+		return nil
+	}
+
 	doc := XmpDocument{}
 
 	if err := doc.FromBytes(seg.Data); err != nil {
