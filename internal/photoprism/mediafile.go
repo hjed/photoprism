@@ -741,6 +741,11 @@ func (m *MediaFile) ExifSupported() bool {
 	return m.IsJpeg() || m.IsRaw() || m.IsHEIF() || m.IsPng() || m.IsTiff()
 }
 
+// XmpSupported returns true if parsing XMP metadata is supported for the media file type.
+func (m *MediaFile) XmpSupported() bool {
+	return m.IsJpeg()
+}
+
 // IsMedia returns true if this is a media file (photo or video, not sidecar or other).
 func (m *MediaFile) IsMedia() bool {
 	return m.IsJpeg() || m.IsVideo() || m.IsRaw() || m.IsHEIF() || m.IsImageOther()

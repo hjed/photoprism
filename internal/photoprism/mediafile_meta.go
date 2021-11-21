@@ -77,6 +77,16 @@ func (m *MediaFile) MetaData() (result meta.Data) {
 			err = fmt.Errorf("exif not supported")
 		}
 
+		if m.XmpSupported() {
+			xmpErr := m.metaData.XMPMedia(m.fileName, m.FileType())
+			if xmpErr != nil {
+				log.Debugf("metadata: %s in %s", err, txt.Quote(m.BaseName()))
+				if err == nil {
+					err = xmpErr
+				}
+			}
+		}
+
 		// Parse regular JSON sidecar files ("img_1234.json")
 		if !m.IsSidecar() {
 			if jsonFiles := fs.FormatJson.FindAll(m.FileName(), []string{Config().SidecarPath(), fs.HiddenPath}, Config().OriginalsPath(), false); len(jsonFiles) == 0 {

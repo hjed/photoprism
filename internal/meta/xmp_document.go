@@ -209,6 +209,10 @@ func (doc *XmpDocument) Load(filename string) error {
 	return xml.Unmarshal(data, doc)
 }
 
+func (doc *XmpDocument) FromBytes(data []byte) error {
+	return xml.Unmarshal(data, doc)
+}
+
 // Title returns the XMP document title.
 func (doc *XmpDocument) Title() string {
 	t := doc.RDF.Description.Title.Alt.Li.Text
