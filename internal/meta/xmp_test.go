@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/photoprism/photoprism/pkg/fs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,4 +72,19 @@ func TestXMP(t *testing.T) {
 		assert.Equal(t, "iPhone 7 back camera 3.99mm f/1.8", data.LensModel)
 	})
 
+}
+
+func TestXMPMedia(t *testing.T) {
+	t.Run("digikam", func(t *testing.T) {
+		data, err := XMPMedia("testdata/digikam.jpeg", fs.FormatJpeg)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		assert.Equal(t, "A test landscape title", data.Title)
+		assert.Equal(t, "A test caption", data.Description)
+		assert.Equal(t, time.Date(2021, 11, 21, 22, 11, 47, 0, time.FixedZone("", +39600)), data.TakenAt)
+
+	})
 }
