@@ -44,7 +44,7 @@ var UnknownLocation = Cell{
 
 // CreateUnknownLocation creates the default location if not exists.
 func CreateUnknownLocation() {
-	FirstOrCreateCell(&UnknownLocation)
+	UnknownLocation = *FirstOrCreateCell(&UnknownLocation)
 }
 
 // NewCell creates a location using a token extracted from coordinate
@@ -71,6 +71,9 @@ func (m *Cell) Refresh(api string) (err error) {
 		ID: s2.NormalizeToken(m.ID),
 	}
 
+	cellMutex.Lock()
+	defer cellMutex.Unlock()
+
 	// Query geodata API.
 	if err = l.QueryApi(api); err != nil {
 		return err
@@ -84,9 +87,6 @@ func (m *Cell) Refresh(api string) (err error) {
 
 	oldPlaceID := m.PlaceID
 
-	cellMutex.Lock()
-	defer cellMutex.Unlock()
-
 	place := Place{
 		ID:            l.PlaceID(),
 		PlaceLabel:    l.Label(),
@@ -98,13 +98,14 @@ func (m *Cell) Refresh(api string) (err error) {
 		PhotoCount:    1,
 	}
 
+	m.Place = &place
+	m.PlaceID = l.PlaceID()
+
 	// Create or update place.
 	if err = place.Save(); err != nil {
-		log.Warnf("place: failed updating %s [%s]", place.ID, time.Since(start))
+		log.Errorf("index: %s while saving place %s", err, place.ID)
 	} else {
-		m.Place = &place
-		m.PlaceID = l.PlaceID()
-		log.Tracef("place: updated %s [%s]", place.ID, time.Since(start))
+		log.Tracef("index: updated place %s", place.ID)
 	}
 
 	m.CellName = l.Name()
@@ -116,16 +117,18 @@ func (m *Cell) Refresh(api string) (err error) {
 	err = m.Save()
 
 	if err != nil {
-		log.Warnf("place: failed updating %s [%s]", m.ID, time.Since(start))
+		log.Errorf("index: %s while updating cell %s [%s]", err, m.ID, time.Since(start))
 		return err
-	} else if oldPlaceID != m.PlaceID {
-		err = UnscopedDb().Table(Photo{}.TableName()).
-			Where("place_id = ?", oldPlaceID).
-			UpdateColumn("place_id", m.PlaceID).
-			Error
+	} else if oldPlaceID == m.PlaceID {
+		log.Tracef("index: cell %s keeps place_id %s", m.ID, m.PlaceID)
+	} else if err := UnscopedDb().Table(Photo{}.TableName()).
+		Where("place_id = ?", oldPlaceID).
+		UpdateColumn("place_id", m.PlaceID).
+		Error; err != nil {
+		log.Warnf("index: %s while changing place_id from %s to %s", err, oldPlaceID, m.PlaceID)
 	}
 
-	log.Debugf("place: updated %s [%s]", m.ID, time.Since(start))
+	log.Debugf("index: updated cell %s [%s]", m.ID, time.Since(start))
 
 	return err
 }
@@ -141,8 +144,11 @@ func (m *Cell) Find(api string) error {
 	}
 
 	l := &maps.Location{
-		ID: m.ID,
+		ID: s2.NormalizeToken(m.ID),
 	}
+
+	cellMutex.Lock()
+	defer cellMutex.Unlock()
 
 	if err := l.QueryApi(api); err != nil {
 		return err
@@ -183,9 +189,6 @@ func (m *Cell) Find(api string) error {
 	m.CellStreet = l.Street()
 	m.CellPostcode = l.Postcode()
 	m.CellCategory = l.Category()
-
-	cellMutex.Lock()
-	defer cellMutex.Unlock()
 
 	if createErr := db.Create(m).Error; createErr == nil {
 		log.Debugf("place: added cell %s [%s]", m.ID, time.Since(start))
