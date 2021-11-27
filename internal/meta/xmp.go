@@ -33,13 +33,22 @@ func (data *Data) XMPMedia(fileName string, fileType fs.FileFormat) (err error) 
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("metadata: %s in %s (xmp panic)\nstack: %s", e, txt.Quote(filepath.Base(fileName)), debug.Stack())
+			log.Error(err)
 		}
 	}()
 	f, err := os.Open(fileName)
+	if err != nil {
+		log.Errorf("failed to open %s - %s", fileName, err)
+		return err
+	}
 
 	defer f.Close()
 
 	stat, err := f.Stat()
+	if err != nil {
+		log.Errorf("failed to open %s - %s", fileName, err)
+		return err
+	}
 
 	size := stat.Size()
 
@@ -49,13 +58,20 @@ func (data *Data) XMPMedia(fileName string, fileType fs.FileFormat) (err error) 
 	_, seg, err = sl.FindXmp()
 
 	if seg == nil {
-		log.Debug("No XMP data found for %s", txt.Quote(filepath.Base(fileName)))
+		log.Debugf("No XMP data found for %s", txt.Quote(filepath.Base(fileName)))
 		return nil
 	}
 
 	doc := XmpDocument{}
 
-	if err := doc.FromBytes(seg.Data); err != nil {
+	formatted, err := seg.FormattedXmp()
+	if err != nil {
+		log.Errorf("Error getting XMP - %s", err)
+		return err
+	}
+
+	if err := doc.FromBytes([]byte(formatted)); err != nil {
+		log.Errorf("%s", err)
 		return fmt.Errorf("metadata: can't read %s (xmp)", txt.Quote(filepath.Base(fileName)))
 	}
 

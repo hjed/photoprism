@@ -76,7 +76,7 @@ func TestXMP(t *testing.T) {
 
 func TestXMPMedia(t *testing.T) {
 	t.Run("digikam", func(t *testing.T) {
-		data, err := XMPMedia("testdata/digikam.jpeg", fs.FormatJpeg)
+		data, err := XMPMedia("testdata/digikam-xmp.jpg", fs.FormatJpeg)
 
 		if err != nil {
 			t.Fatal(err)
@@ -84,7 +84,7 @@ func TestXMPMedia(t *testing.T) {
 
 		assert.Equal(t, "A test landscape title", data.Title)
 		assert.Equal(t, "A test caption", data.Description)
-		assert.Equal(t, time.Date(2021, 11, 21, 22, 11, 47, 0, time.FixedZone("", +39600)), data.TakenAt)
+		assert.Equal(t, time.Date(2021, 11, 13, 16, 55, 52, 0, time.UTC), data.TakenAt)
 
 	})
 }
